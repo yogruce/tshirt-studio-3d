@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D T-Shirt Studio &amp; 2D Kalıp Editörü</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-C8rXShSk.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BR2wqzdS.css">
+</head>
+<body>
+  <div id="app">
+    <!-- LEFT / MAIN WORKSPACE (3D Top + 2D Pattern Bottom) -->
+    <div class="workspace-col">
+      
+      <!-- TOP PANEL: 3D LIVE PREVIEW VIEWPORT -->
+      <div class="viewport-3d" id="viewport3dContainer">
+        <canvas id="canvas3d"></canvas>
+
+        <!-- Top-Left Quick Camera Views -->
+        <div class="camera-pills">
+          <button class="cam-pill active" data-cam="front" title="Ön Görünüm">Ön</button>
+          <button class="cam-pill" data-cam="back" title="Arka Görünüm">Arka</button>
+          <button class="cam-pill" data-cam="left" title="Sol Kol Görünümü">Sol Kol</button>
+          <button class="cam-pill" data-cam="right" title="Sağ Kol Görünümü">Sağ Kol</button>
+          <button class="cam-pill" data-cam="collar" title="Yaka & Göğüs Yakın Çekim">Yakın Plan</button>
+        </div>
+
+        <!-- Top-Right Garment Model Selector (Matches Screenshot "T-SHIRT ON BODY / Oversize Crew neck") -->
+        <div class="garment-switcher">
+          <div class="garment-icon">👕</div>
+          <div class="garment-info">
+            <span class="garment-label">T-SHIRT MODELİ</span>
+            <select id="modelSelect" class="garment-select">
+              <option value="short">Kısa Kollu · Oversize Crew Neck</option>
+              <option value="long">Uzun Kollu · Long Sleeve Crew Neck</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Recording / Export Overlay -->
+        <div id="recordOverlay" class="record-overlay hidden">
+          <div class="record-box">
+            <div class="record-dot"></div>
+            <span id="recordStatusText">360° Vitrin Videosu Kaydediliyor... %0</span>
+            <div class="record-progress-bar">
+              <div id="recordProgressFill" class="record-progress-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom-Left Live Preview Badge -->
+        <div class="live-badge">
+          <span class="live-dot"></span>
+          <span>Live preview</span>
+        </div>
+
+        <!-- Bottom-Center Reset View Pill -->
+        <div class="viewport-bottom-bar">
+          <button id="btnResetView" class="reset-view-btn" title="Kamerayı Sıfırla">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+            <span>Reset view</span>
+          </button>
+          <button id="btnQuickSpin" class="icon-pill-btn" title="360° Otomatik Döndür">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- DRAGGABLE HORIZONTAL SPLITTER -->
+      <div class="splitter-bar" id="splitterBar" title="Boyutu ayarlamak için sürükleyin">
+        <div class="splitter-grip"></div>
+      </div>
+
+      <!-- BOTTOM PANEL: FULL 2D SEWING PATTERN EDITOR -->
+      <div class="editor-2d" id="editor2dContainer">
+        <!-- Top Ruler -->
+        <div class="ruler-corner"></div>
+        <canvas id="rulerTop" class="ruler-top"></canvas>
+        <!-- Left Ruler -->
+        <canvas id="rulerLeft" class="ruler-left"></canvas>
+
+        <!-- Main 2D Pattern Canvas -->
+        <div class="pattern-canvas-wrap" id="patternCanvasWrap">
+          <canvas id="canvas2d"></canvas>
+
+          <!-- Left Floating Toolbar (Matches Screenshot) -->
+          <div class="floating-tools">
+            <button class="tool-btn active" id="toolSelect" title="Seç ve Düzenle (V)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4 3l16 9-7 2-3 7L4 3z"/>
+              </svg>
+            </button>
+            <button class="tool-btn" id="toolPan" title="Kaydır / Pan (H veya Boşluk+Sürükle)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+                <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+                <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+                <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+              </svg>
+            </button>
+            <label class="tool-btn upload-tool-label" title="Tasarım Yükle (PNG, SVG, JPG)">
+              <input type="file" id="fileInput" accept="image/*" multiple hidden />
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </label>
+            <button class="tool-btn" id="toolAddText" title="Metin Ekle (T)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="4 7 4 4 20 4 20 7"/>
+                <line x1="9" y1="20" x2="15" y2="20"/>
+                <line x1="12" y1="4" x2="12" y2="20"/>
+              </svg>
+            </button>
+            <button class="tool-btn" id="toolPresets" title="Hazır Örnek Tasarımlar">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </button>
+            <button class="tool-btn pv-tool-btn" id="toolPromptVault" title="PromptVault Kasasından Görsel Çek (◈)">
+              <span>◈</span>
+            </button>
+
+            <div class="tool-divider"></div>
+
+            <!-- Unit Selector (mm / cm / in) matching screenshot -->
+            <button class="unit-btn" data-unit="mm">mm</button>
+            <button class="unit-btn active" data-unit="cm">cm</button>
+            <button class="unit-btn" data-unit="in">in</button>
+          </div>
+
+          <!-- Selected Layer Quick Action Bar (Appears when a graphic/text is selected) -->
+          <div id="layerContextBar" class="layer-context-bar hidden">
+            <span id="selectedLayerName" class="layer-tag">Tasarım</span>
+            <div class="ctx-sep"></div>
+            <button id="btnCenterPiece" class="ctx-btn" title="Kalıpta Ortala">Ortala</button>
+            <button id="btnFlipH" class="ctx-btn" title="Yatay Çevir">↔ Çevir</button>
+            <button id="btnDuplicate" class="ctx-btn" title="Çoğalt">Çoğalt</button>
+            <button id="btnDeleteLayer" class="ctx-btn danger" title="Sil (Del)">Sil</button>
+          </div>
+
+          <!-- Text Editor Popover (Appears when a text layer is selected) -->
+          <div id="textEditBar" class="text-edit-bar hidden">
+            <input type="text" id="textContentInput" placeholder="Metin yazın..." />
+            <select id="textFontSelect">
+              <option value="Oswald">Oswald Bold</option>
+              <option value="Bebas Neue">Bebas Neue</option>
+              <option value="Inter">Inter ExtraBold</option>
+              <option value="Impact">Impact</option>
+            </select>
+            <input type="color" id="textColorInput" value="#ffffff" title="Metin Rengi" />
+          </div>
+
+          <!-- Preset Designs Drawer -->
+          <div id="presetsPopover" class="presets-popover hidden">
+            <div class="popover-header">
+              <span>Hazır Tasarım Şablonları</span>
+              <button id="btnClosePresets" class="close-sm">✕</button>
+            </div>
+            <div class="presets-grid" id="presetsGrid"></div>
+            <div class="popover-footer">
+              <button id="btnClearAllLayers" class="btn-outline-sm danger">Tüm Tasarımları Temizle</button>
+            </div>
+          </div>
+
+          <!-- PromptVault Integration Drawer -->
+          <div id="promptVaultPopover" class="pv-popover hidden">
+            <div class="popover-header">
+              <div class="pv-title">
+                <span class="pv-logo">◈</span>
+                <span>PromptVault Kasası</span>
+                <span id="pvStatusDot" class="pv-status-dot" title="PromptVault Bağlantı Durumu"></span>
+              </div>
+              <button id="btnClosePV" class="close-sm">✕</button>
+            </div>
+            <div class="pv-controls">
+              <div class="pv-row">
+                <input type="text" id="pvServerUrl" value="http://127.0.0.1:7860" placeholder="PromptVault URL" title="PromptVault Sunucu Adresi" />
+                <button id="btnPvConnect" class="pv-btn-sm">Bağlan / Yenile</button>
+              </div>
+              <div class="pv-row">
+                <select id="pvWorkspaceSelect" class="pv-select">
+                  <option value="">Tüm Projeler (Workspaces)</option>
+                </select>
+                <select id="pvTargetPiece" class="pv-select" title="Eklenecek Kalıp Parçası">
+                  <option value="front">Hedef: Ön Gövde</option>
+                  <option value="back">Hedef: Arka Gövde</option>
+                  <option value="right_sleeve">Hedef: Sağ Kol</option>
+                  <option value="left_sleeve">Hedef: Sol Kol</option>
+                </select>
+              </div>
+              <div class="pv-row">
+                <input type="text" id="pvSearchInput" placeholder="Prompt veya etiket ara..." />
+              </div>
+            </div>
+            <div id="pvGalleryGrid" class="pv-gallery-grid">
+              <div class="pv-empty">PromptVault'a bağlanmak için "Bağlan / Yenile" butonuna tıklayın.</div>
+            </div>
+          </div>
+
+          <!-- Bottom-Right Zoom Controls -->
+          <div class="zoom-controls">
+            <button id="btnZoomOut" title="Uzaklaştır">−</button>
+            <span id="zoomLabel">100%</span>
+            <button id="btnZoomIn" title="Yakınlaştır">+</button>
+            <button id="btnZoomFit" title="Kalıpları Ekrana Sığdır">Sığdır</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDEBAR: STUDIO, COLORS, DETAILS & EXPORT -->
+    <aside class="studio-sidebar">
+      <div class="sidebar-scroll">
+
+        <!-- SECTION 1: GARMENT & PATTERN PIECE COLORS -->
+        <div class="sidebar-section">
+          <div class="section-title-row">
+            <h3>Kalıp &amp; Kumaş Renkleri</h3>
+            <button id="btnSyncAllColors" class="link-btn" title="Tüm parçaları gövde rengiyle eşitle">Tümünü Eşitle</button>
+          </div>
+
+          <div class="control-row">
+            <label>Düzenlenen Parça</label>
+            <select id="activePieceColorSelect" class="studio-select">
+              <option value="body_all">Tüm Gövde + Kollar</option>
+              <option value="neck_rib">Yaka Ribanası (Neck Rib)</option>
+              <option value="front">Sadece Ön Gövde (Front)</option>
+              <option value="back">Sadece Arka Gövde (Back)</option>
+              <option value="right_sleeve">Sadece Sağ Kol (Right Sleeve)</option>
+              <option value="left_sleeve">Sadece Sol Kol (Left Sleeve)</option>
+            </select>
+          </div>
+
+          <div class="swatch-grid" id="fabricSwatches">
+            <button class="swatch active" data-color="#65745a" style="background:#65745a" title="Haki Yeşil (Görseldeki Gövde)"></button>
+            <button class="swatch" data-color="#a6c83b" style="background:#a6c83b" title="Fıstık Yeşili (Görseldeki Yaka)"></button>
+            <button class="swatch" data-color="#18191b" style="background:#18191b" title="Yıkamalı Siyah"></button>
+            <button class="swatch" data-color="#f4f4f0" style="background:#f4f4f0" title="Ekru / Beyaz"></button>
+            <button class="swatch" data-color="#28334a" style="background:#28334a" title="Gece Laciverti"></button>
+            <button class="swatch" data-color="#7c2d32" style="background:#7c2d32" title="Bordo"></button>
+            <button class="swatch" data-color="#d4c4a8" style="background:#d4c4a8" title="Kum Beji"></button>
+            <button class="swatch" data-color="#52565e" style="background:#52565e" title="Antrasit Gri"></button>
+            <button class="swatch" data-color="#c95b3c" style="background:#c95b3c" title="Kiremit"></button>
+            <label class="swatch rainbow-swatch" title="Özel Renk Seç">
+              <input type="color" id="customFabricColor" value="#65745a" />
+            </label>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span>Kumaş Dokusu (Penye Kabartma)</span>
+              <span id="valFabricBump">100%</span>
+            </div>
+            <input type="range" id="sliderFabricBump" min="0" max="200" value="100" />
+          </div>
+        </div>
+
+        <!-- SECTION 2: BACKDROP & HDRI (Matches Screenshot) -->
+        <div class="sidebar-section">
+          <h3>Backdrop</h3>
+
+          <div class="sub-label">Studio HDRI</div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <span>HDRI intensity</span>
+              <span id="valHdriIntensity">1.1</span>
+            </div>
+            <input type="range" id="sliderHdriIntensity" min="20" max="250" value="110" />
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span>HDRI rotation</span>
+              <span id="valHdriRotation">35°</span>
+            </div>
+            <input type="range" id="sliderHdriRotation" min="0" max="360" value="35" />
+          </div>
+
+          <div class="toggle-row">
+            <span>Studio backdrop</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleBackdrop" checked />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <span>Shadow on the backdrop</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleBackdropShadow" checked />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="swatch-grid" id="backdropSwatches">
+            <button class="swatch active" data-bg="#3f4a3c" style="background:#3f4a3c" title="Orman Yeşili (Görseldeki Stüdyo)"></button>
+            <button class="swatch" data-bg="#22252a" style="background:#22252a" title="Koyu Antrasit Stüdyo"></button>
+            <button class="swatch" data-bg="#d8dad7" style="background:#d8dad7" title="Açık Gri Stüdyo"></button>
+            <button class="swatch" data-bg="#e8dfd1" style="background:#e8dfd1" title="Sıcak Krem Stüdyo"></button>
+            <button class="swatch" data-bg="#1e2d3d" style="background:#1e2d3d" title="Gece Mavisi"></button>
+            <button class="swatch" data-bg="#4a2c2a" style="background:#4a2c2a" title="Koyu Kahve / Bordo"></button>
+            <button class="swatch" data-bg="#111213" style="background:#111213" title="Siyah"></button>
+            <label class="swatch rainbow-swatch" title="Özel Arka Plan Rengi">
+              <input type="color" id="customBackdropColor" value="#3f4a3c" />
+            </label>
+          </div>
+
+          <div class="control-row">
+            <label>Backdrop light</label>
+            <select id="backdropLightSelect" class="studio-select">
+              <option value="leaf">Leaf shadow (Yaprak Gölgesi)</option>
+              <option value="window">Window blinds (Pencere Işığı)</option>
+              <option value="soft">Studio Soft (Yumuşak Spot)</option>
+              <option value="none">Flat (Gölgesiz Düz)</option>
+            </select>
+          </div>
+
+          <div class="toggle-row">
+            <span>Invert light</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleInvertLight" />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span>Backdrop brightness</span>
+              <span id="valBgBrightness">100%</span>
+            </div>
+            <input type="range" id="sliderBgBrightness" min="30" max="180" value="100" />
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span>Backdrop contrast</span>
+              <span id="valBgContrast">115%</span>
+            </div>
+            <input type="range" id="sliderBgContrast" min="50" max="200" value="115" />
+          </div>
+        </div>
+
+        <!-- SECTION 3: DETAILS (Matches Screenshot) -->
+        <div class="sidebar-section">
+          <h3>Details</h3>
+
+          <div class="toggle-row">
+            <span>Neck label (Yaka Etiketi)</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleNeckLabel" checked />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="control-row">
+            <label>Label shape</label>
+            <select id="labelShapeSelect" class="studio-select">
+              <option value="small">Small woven</option>
+              <option value="square">Square woven</option>
+              <option value="wide">Wide streetwear tag</option>
+            </select>
+          </div>
+
+          <div class="swatch-grid compact-swatches" id="labelSwatches">
+            <button class="swatch active" data-label-color="#f2f0eb" style="background:#f2f0eb"></button>
+            <button class="swatch" data-label-color="#18181b" style="background:#18181b"></button>
+            <button class="swatch" data-label-color="#a6c83b" style="background:#a6c83b"></button>
+            <button class="swatch" data-label-color="#d97706" style="background:#d97706"></button>
+          </div>
+
+          <div class="toggle-row">
+            <span>Auto-rotate 3D</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleAutoRotate" />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <span>Pattern markings</span>
+            <label class="switch">
+              <input type="checkbox" id="togglePatternMarkings" checked />
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- SECTION 4: EXPORT / ÇIKTI ALMA (PNG & 360 VIDEO) -->
+        <div class="sidebar-section export-section">
+          <h3>Çıktı &amp; Render Al (Export)</h3>
+          <div class="export-buttons">
+            <button id="btnExportTransparentPng" class="export-btn primary-export">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>Şeffaf PNG İndir (Ultra HD)</span>
+            </button>
+
+            <button id="btnExportStudioPng" class="export-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21"/>
+              </svg>
+              <span>Stüdyo Arka Planlı PNG İndir</span>
+            </button>
+
+            <button id="btnExportVideo360" class="export-btn video-export">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+              <span>360° Dönen Vitrin Videosu (WebM)</span>
+            </button>
+
+            <button id="btnExportPattern2d" class="export-btn subtle-export">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span>2D Kalıp Planını İndir (PNG)</span>
+            </button>
+
+            <button id="btnSaveToPromptVault" class="export-btn pv-export-btn" title="3D Render'ı doğrudan açık olan PromptVault kasanıza kaydeder">
+              <span class="pv-logo">◈</span>
+              <span id="btnSaveToPvText">Render'ı PromptVault'a Kaydet</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- SECTION 5: DEFAULT SETTINGS -->
+        <div class="sidebar-section">
+          <h3>Default settings</h3>
+          <button id="btnResetDefaults" class="reset-defaults-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+            <span>Varsayılan Sahneye Dön</span>
+          </button>
+        </div>
+
+      </div>
+    </aside>
+  </div>
+
+</body>
+</html>
